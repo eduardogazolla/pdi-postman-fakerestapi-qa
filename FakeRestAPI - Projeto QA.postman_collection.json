@@ -1,0 +1,202 @@
+{
+  "info": {
+    "_postman_id": "f886e86e-b5d0-437f-abe1-216edf6edd57",
+    "name": "FakeRestAPI - Projeto QA",
+    "description": "Projeto de estudo para QA: domínio de variáveis, pré-scripts, testes e reaproveitamento. Collection organizada em pastas para Activities (Navegação e CRUD).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Activities - Navegação",
+      "item": [
+        {
+          "name": "GET - Listar atividades",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "let atividades = pm.response.json();",
+                  "let total = atividades.length;",
+                  "",
+                  "// Pega o valor atual da variável de índice",
+                  "let indexAtual = parseInt(pm.environment.get(\"activities_index\")) || 0;",
+                  "",
+                  "// Se estiver vazio ou estourou o limite, volta pra 0",
+                  "if (!indexAtual || indexAtual >= total) {",
+                  "    indexAtual = 0;",
+                  "}",
+                  "",
+                  "// Salva o activities_id correspondente ao índice",
+                  "let id = atividades[indexAtual].id;",
+                  "pm.environment.set(\"activities_id\", id);",
+                  "",
+                  "// Atualiza a variável para o próximo índice",
+                  "pm.environment.set(\"activities_index\", indexAtual + 1);",
+                  "",
+                  "// Teste básico",
+                  "pm.test(\"Atividade selecionada existe\", () => {",
+                  "    pm.expect(atividades[indexAtual]).to.have.property(\"id\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/Activities",
+              "host": ["{{base_url}}"],
+              "path": ["Activities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Buscar atividade por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"ID da atividade é o mesmo da variável\", function () {",
+                  "    let json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(parseInt(pm.environment.get(\"activities_id\")));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/Activities/{{activities_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["Activities", "{{activities_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Activities - CRUD",
+      "item": [
+        {
+          "name": "POST - Criar nova atividade",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Gera ID aleatório (ex: 1001 a 9999)",
+                  "let id = Math.floor(Math.random() * 9000) + 1000;",
+                  "",
+                  "// Gera título aleatório",
+                  "let title = \"Atividade - \" + new Date().toISOString();",
+                  "",
+                  "// Define variáveis",
+                  "pm.environment.set(\"new_activity_id\", id);",
+                  "pm.environment.set(\"new_activity_title\", title);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Atividade criada com sucesso\", () => {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});",
+                  "",
+                  "let json = pm.response.json();",
+                  "pm.test(\"Título retornado bate com o enviado\", () => {",
+                  "    pm.expect(json.title).to.eql(pm.environment.get(\"new_activity_title\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json", "type": "text"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{new_activity_id}},\n  \"title\": \"{{new_activity_title}}\",\n  \"dueDate\": \"2025-12-31T00:00:00.000Z\",\n  \"completed\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Activities",
+              "host": ["{{base_url}}"],
+              "path": ["Activities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - Atualizar atividade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Atividade foi atualizada\", () => {",
+                  "    let json = pm.response.json();",
+                  "    pm.expect(json.title).to.include(\"Atualizado\");",
+                  "    pm.expect(json.completed).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json", "type": "text"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{new_activity_id}},\n  \"title\": \"{{new_activity_title}} - Atualizado\",\n  \"dueDate\": \"2026-01-01T00:00:00.000Z\",\n  \"completed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/Activities/{{new_activity_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["Activities", "{{new_activity_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE - Remover atividade",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Atividade deletada com sucesso\", () => {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/Activities/{{new_activity_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["Activities", "{{new_activity_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
